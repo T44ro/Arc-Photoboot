@@ -19,6 +19,6 @@ export const FRAMES: FrameConfig[] = [
       label: '4-Strip Vertical', 
       photoCount: 4, 
       gridClass: 'grid-cols-1 grid-rows-4 gap-1', 
-      aspect: '1/4' 
+      aspect: '1/3' 
   },
 ];

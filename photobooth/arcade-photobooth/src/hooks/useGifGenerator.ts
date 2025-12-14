@@ -10,40 +10,24 @@ export const useGifGenerator = (images: string[]) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fungsi Pembantu: Memotong gambar persegi panjang menjadi kotak (Center Crop)
-  const cropToSquare = (base64Image: string, size: number): Promise<string> => {
+  // Fungsi Pembantu: Resize gambar ke 16:9 (Tanpa Crop, Full Image)
+  const resizeTo16_9 = (base64Image: string, width: number, height: number): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Image;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
 
         if (ctx) {
-          // Logika Center Crop (Object-fit: Cover)
-          const aspectRatio = img.width / img.height;
-          let sourceWidth = img.width;
-          let sourceHeight = img.height;
-          let startX = 0;
-          let startY = 0;
-
-          if (aspectRatio > 1) {
-            // Gambar Landscape: Potong kiri-kanan
-            sourceWidth = img.height;
-            startX = (img.width - img.height) / 2;
-          } else {
-            // Gambar Portrait: Potong atas-bawah
-            sourceHeight = img.width;
-            startY = (img.height - img.width) / 2;
-          }
-
-          // Gambar ulang ke canvas kotak
-          ctx.drawImage(img, startX, startY, sourceWidth, sourceHeight, 0, 0, size, size);
+          // Gambar full image ke canvas 16:9
+          // Karena sumber foto dari webcam sudah 16:9, ini tidak akan gepeng.
+          ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', 0.8));
         } else {
-          resolve(base64Image); // Fallback jika gagal
+          resolve(base64Image); // Fallback
         }
       };
     });
@@ -52,21 +36,27 @@ export const useGifGenerator = (images: string[]) => {
   const generateGif = useCallback(async (options?: GifOptions) => {
     if (!images || images.length === 0 || isGenerating) return;
 
-    console.log("🎬 Memulai proses Smart-Crop GIF...");
+    console.log("🎬 Memulai proses GIF 16:9...");
     setIsGenerating(true);
     setError(null);
     setGifUrl(null);
 
     try {
-      // 1. Proses Crop semua gambar dulu agar rasio 1:1 sempurna
-      const size = 400; // Ukuran target
-      const croppedImages = await Promise.all(images.map(img => cropToSquare(img, size)));
+      // 1. Tentukan ukuran target 16:9
+      // Kita gunakan 640x360 agar file GIF tidak terlalu berat tapi tetap tajam
+      const TARGET_WIDTH = 640*2;
+      const TARGET_HEIGHT = 360*2; 
 
-      // 2. Buat GIF dari gambar yang sudah dicrop
+      // 2. Resize semua frame ke 16:9
+      const processedImages = await Promise.all(
+        images.map(img => resizeTo16_9(img, TARGET_WIDTH, TARGET_HEIGHT))
+      );
+
+      // 3. Buat GIF
       gifshot.createGIF({
-        images: croppedImages,
-        gifWidth: size,
-        gifHeight: size,
+        images: processedImages,
+        gifWidth: TARGET_WIDTH,
+        gifHeight: TARGET_HEIGHT,
         interval: options?.interval || 0.4,
         numFrames: images.length,
         frameDuration: 1,
@@ -76,7 +66,7 @@ export const useGifGenerator = (images: string[]) => {
         text: '',
       }, (obj: any) => {
         if (!obj.error) {
-          console.log("✅ GIF Center-Crop berhasil!");
+          console.log("✅ GIF 16:9 berhasil dibuat!");
           setGifUrl(obj.image);
         } else {
           console.error("❌ Gagal:", obj.errorMsg);
@@ -85,8 +75,8 @@ export const useGifGenerator = (images: string[]) => {
         setIsGenerating(false);
       });
     } catch (err) {
-      console.error("Error cropping:", err);
-      setError("Gagal memproses gambar.");
+      console.error("Error creating GIF:", err);
+      setError("Gagal memproses GIF.");
       setIsGenerating(false);
     }
   }, [images, isGenerating]);

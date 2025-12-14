@@ -8,7 +8,6 @@ export const useSmartWebcam = () => {
   const [videoClips, setVideoClips] = useState<string[]>([]);
   const chunksRef = useRef<Blob[]>([]);
   
-  // State Device
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [activeDeviceId, setActiveDeviceId] = useState<string | undefined>(undefined);
 
@@ -42,10 +41,9 @@ export const useSmartWebcam = () => {
           }
         };
 
-        // --- FIX UTAMA DISINI ---
-        // Hapus parameter '100'. Gunakan start() kosong.
-        // Ini memaksa browser menggunakan mode kompatibilitas tinggi untuk Mirrorless.
+        // --- FIX: HAPUS PARAMETER WAKTU (Penyebab Error NotSupportedError) ---
         recorder.start(); 
+        // ---------------------------------------------------------------------
         
         console.log("🎬 Clip Recording Started...");
       } catch (e) {
@@ -57,14 +55,10 @@ export const useSmartWebcam = () => {
   const stopSingleClip = useCallback((index: number) => {
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state === 'recording') {
-      
-      // Definisikan aksi saat stop dipanggil
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'video/webm' });
         if (blob.size > 0) {
           const url = URL.createObjectURL(blob);
-          console.log(`✅ Clip #${index+1} Saved (${blob.size} bytes)`);
-          
           setVideoClips(prev => {
             const newClips = [...prev];
             newClips[index] = url;
@@ -72,7 +66,6 @@ export const useSmartWebcam = () => {
           });
         }
       };
-
       recorder.stop();
     }
   }, []);
@@ -82,14 +75,6 @@ export const useSmartWebcam = () => {
   }, [webcamRef]);
 
   return { 
-    webcamRef, 
-    startSingleClip, 
-    stopSingleClip, 
-    resetClips, 
-    videoClips, 
-    capturePhoto,
-    devices,
-    activeDeviceId,
-    switchCamera
+    webcamRef, startSingleClip, stopSingleClip, resetClips, videoClips, capturePhoto, devices, activeDeviceId, switchCamera
   };
 };
