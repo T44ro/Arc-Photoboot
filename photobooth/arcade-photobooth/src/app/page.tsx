@@ -232,7 +232,7 @@ export default function ArcadePhotobooth() {
                                  ))}
                              </div>
                              {selectedFrameUrl && (<img src={selectedFrameUrl} className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />)}
-                             <div className="text-center text-[10px] font-bold text-black mt-1 uppercase tracking-widest shrink-0">KEMIL.CO</div>
+                             <div className="text-center text-[10px] font-bold text-black mt-1 uppercase tracking-widest shrink-0">SE-BOOTH</div>
                         </div>
                         <div className="text-center mt-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">PREVIEW HASIL</div>
                     </div>

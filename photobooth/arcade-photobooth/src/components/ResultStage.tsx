@@ -166,7 +166,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     ctx.font = 'bold 40px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('KEMIL.CO', STRIP_WIDTH / 2, STRIP_HEIGHT - 60);
+    ctx.fillText('SE-BOOTH', STRIP_WIDTH / 2, STRIP_HEIGHT - 60);
 
     return canvas.toDataURL('image/jpeg', 0.95);
   };
@@ -278,7 +278,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 ctx.font = 'bold 40px monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('KEMIL.CO', STRIP_WIDTH / 2, STRIP_HEIGHT - 60);
+                ctx.fillText('SE-BOOTH', STRIP_WIDTH / 2, STRIP_HEIGHT - 60);
             }
         };
 
@@ -371,7 +371,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                           </div>
                       ))}
                       {uploadedFrameLayer && (<img src={typeof uploadedFrameLayer === 'object' ? uploadedFrameLayer.url : uploadedFrameLayer} className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />)}
-                      <div className="absolute bottom-2 w-full text-center text-black font-bold text-[8px]">KEMIL.CO</div>
+                      <div className="absolute bottom-2 w-full text-center text-black font-bold text-[8px]">SE-BOOTH</div>
                   </div>
                 )}
 
@@ -409,7 +409,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                             </div>
                         ))}
                         {uploadedFrameLayer && (<img src={typeof uploadedFrameLayer === 'object' ? uploadedFrameLayer.url : uploadedFrameLayer} className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />)}
-                        <div className="absolute bottom-0 left-0 right-0 text-center font-mono text-black font-bold uppercase tracking-widest text-[10px]">KEMIL.CO</div>
+                        <div className="absolute bottom-0 left-0 right-0 text-center font-mono text-black font-bold uppercase tracking-widest text-[10px]">SE-BOOTH</div>
                     </div>
                     <div className="text-center mt-4"><QRCode value={downloadLink} size={50} /></div>
                  </div>
