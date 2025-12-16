@@ -30,18 +30,18 @@ export async function POST(req: Request) {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'arcphotobooth3@gmail.com', // <--- JANGAN LUPA GANTI
-        pass: 'jsfu piqh ryla trbb'           // <--- JANGAN LUPA GANTI
+        user: 'seboothin@gmail.com', 
+        pass: 'wlxm gyhn mymz qiac'  
       },
     });
 
     await transporter.sendMail({
-      from: '"Arcade Booth" <no-reply@photobooth.com>',
+      from: '"Se-Booth" <no-reply@photobooth.com>',
       to: email,
-      subject: '📸 Hasil Foto & Video Arcade Booth',
+      subject: '📸 Hasil Foto & Video Se-Booth',
       html: `
         <h3>Halo!</h3>
-        <p>Terima kasih sudah seru-seruan di Arcade Booth.</p>
+        <p>Terima kasih sudah seru-seruan di Se-Booth.</p>
         <p>Kami melampirkan <b>${attachments.length} file</b> kenangan kamu (Foto, GIF, dan Video Live).</p>
         <br/>
         <p><i>Salam,<br/>Admin Booth</i></p>

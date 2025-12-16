@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Film, Image as ImageIcon, Gift, Loader2, Printer, Home, CloudUpload, Palette, RefreshCcw } from 'lucide-react';
+import { Mail, Film, Image as ImageIcon, Gift, Loader2, Printer, Home, CloudUpload, RefreshCcw } from 'lucide-react';
 import { useGifGenerator } from '@/hooks/useGifGenerator';
 import QRCode from 'react-qr-code';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,8 +17,8 @@ const FILTERS = {
 
 const FILTER_LABELS = {
   normal: { label: 'NORMAL', color: '#ffffff' },
-  warm: { label: 'WARM', color: '#f59e0b' },
-  cold: { label: 'COOL', color: '#06b6d4' },
+  warm: { label: '#f59e0b', color: '#f59e0b' },
+  cold: { label: '#06b6d4', color: '#06b6d4' },
   mono: { label: 'B&W', color: '#555555' },
 };
 
@@ -52,7 +52,6 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   const [sessionId] = useState(uuidv4());
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [showEmailInput, setShowEmailInput] = useState(false);
   
   const [selectedFilter, setSelectedFilter] = useState<keyof typeof FILTERS>('normal');
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
@@ -62,6 +61,9 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   const videoStripRef = useRef<HTMLDivElement>(null);
 
   const downloadLink = `${BASE_URL}/downloads/${sessionId}`;
+
+  // --- HAPUS STYLE FONT CUSTOM DI SINI ---
+  // Kita biarkan inherit dari global layout agar sama dengan page lain
 
   useEffect(() => {
     if (photos.length > 0 && !hasProcessed.current) {
@@ -163,7 +165,8 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     }
 
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 40px monospace';
+    // Menggunakan sans-serif umum agar aman, atau ganti dengan font spesifik jika dimuat di canvas
+    ctx.font = 'bold 40px sans-serif'; 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('SE-BOOTH', STRIP_WIDTH / 2, STRIP_HEIGHT - 60);
@@ -275,7 +278,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 }
                 
                 ctx.fillStyle = '#000000';
-                ctx.font = 'bold 40px monospace';
+                ctx.font = 'bold 40px sans-serif'; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText('SE-BOOTH', STRIP_WIDTH / 2, STRIP_HEIGHT - 60);
@@ -352,32 +355,33 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   const handlePrintManual = () => { window.print(); };
 
   return (
-    <div className="flex h-screen w-full bg-[#0a0a0a] text-white font-mono overflow-hidden">
+    // DI SINI: Hapus customFontClass, biarkan inherit dari layout global
+    <div className="flex h-screen w-full bg-white text-black overflow-hidden">
         
         {/* KIRI: PREVIEW */}
-        <div className="w-1/3 h-full flex items-center justify-center bg-[#111] border-r border-gray-800 p-8 relative print:w-full print:h-full print:border-none print:bg-white print:p-0">
-            <div className="transform scale-[0.65] origin-center shadow-[0_0_50px_rgba(0,0,0,0.8)] print:hidden">
+        <div className="w-1/3 h-full flex items-center justify-center bg-gray-50 border-r border-gray-200 p-8 relative print:w-full print:h-full print:border-none print:bg-white print:p-0">
+            <div className="transform scale-[0.65] origin-center shadow-[0_0_50px_rgba(0,0,0,0.2)] print:hidden">
                 {/* PHOTO PREVIEW */}
                 {activeTab === 'photo' && (
-                  <div className="relative bg-white p-2" style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}>
+                  <div className="relative bg-white p-2 border border-gray-300" style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}>
                       {photos.map((src:string, i:number) => (
                           <div key={i} style={getContainerStyle(i)} className="relative group cursor-pointer" onClick={() => onRetakePhoto(i)}>
                               <img src={src} className="w-full h-full object-cover transform scale-x-[-1]" style={getFilterStyle()} />
                               {!isSaving && (
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-opacity">
-                                      <div className="bg-red-500 text-white px-2 py-1 rounded flex items-center gap-1"><RefreshCcw size={10}/> RETAKE</div>
+                                      <div className="bg-red-600 text-white px-2 py-1 rounded flex items-center gap-1"><RefreshCcw size={10}/> RETAKE</div>
                                   </div>
                               )}
                           </div>
                       ))}
                       {uploadedFrameLayer && (<img src={typeof uploadedFrameLayer === 'object' ? uploadedFrameLayer.url : uploadedFrameLayer} className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />)}
-                      <div className="absolute bottom-2 w-full text-center text-black font-bold text-[8px]">SE-BOOTH</div>
+                      <div className="absolute bottom-2 w-full text-center text-black font-bold text-[8px] uppercase tracking-widest">SE-BOOTH</div>
                   </div>
                 )}
 
                 {/* VIDEO PREVIEW */}
                 {activeTab === 'video' && (
-                   <div className="relative bg-black flex items-center justify-center border-2 border-white overflow-hidden" style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}>
+                   <div className="relative bg-black flex items-center justify-center border-2 border-gray-300 overflow-hidden" style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}>
                        {finalVideoUrl ? (
                            <video 
                                key={finalVideoUrl}
@@ -393,7 +397,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
 
                 {/* GIF PREVIEW */}
                 {activeTab === 'gif' && (
-                   <div className="relative bg-black flex items-center justify-center border-2 border-white" style={{ width: PREVIEW_WIDTH, aspectRatio: '16/9' }}>
+                   <div className="relative bg-black flex items-center justify-center border-2 border-gray-300" style={{ width: PREVIEW_WIDTH, aspectRatio: '16/9' }}>
                        {gifUrl ? (<img src={gifUrl} className="w-full h-full object-contain" />) : (<div className="text-center text-xs text-gray-500 flex flex-col items-center gap-2"><Loader2 className="animate-spin" /><span>Generating GIF...</span></div>)}
                    </div>
                 )}
@@ -409,9 +413,9 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                             </div>
                         ))}
                         {uploadedFrameLayer && (<img src={typeof uploadedFrameLayer === 'object' ? uploadedFrameLayer.url : uploadedFrameLayer} className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />)}
-                        <div className="absolute bottom-0 left-0 right-0 text-center font-mono text-black font-bold uppercase tracking-widest text-[10px]">SE-BOOTH</div>
+                        <div className="absolute bottom-0 left-0 right-0 text-center text-black font-bold uppercase tracking-widest text-[10px]">SE-BOOTH</div>
                     </div>
-                    <div className="text-center mt-4"><QRCode value={downloadLink} size={50} /></div>
+                    <div className="text-center mt-4"><QRCode value={downloadLink} size={50} fgColor="#000000" /></div>
                  </div>
             </div>
 
@@ -429,42 +433,45 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
 
         {/* KANAN: KONTROL */}
         <div className="w-2/3 h-full flex flex-col p-8 print:hidden">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-6">
                 <div className="flex gap-4">
-                    <button onClick={() => setActiveTab('photo')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${activeTab==='photo' ? 'bg-white text-black scale-110' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}><ImageIcon size={18}/> FOTO</button>
-                    <button onClick={() => setActiveTab('video')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${activeTab==='video' ? 'bg-[--neon-cyan] text-black scale-110' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}><Film size={18}/> VIDEO</button>
-                    <button onClick={() => setActiveTab('gif')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${activeTab==='gif' ? 'bg-[--neon-yellow] text-black scale-110' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}><Gift size={18}/> GIF</button>
+                    <button onClick={() => setActiveTab('photo')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all border ${activeTab==='photo' ? 'bg-black text-white border-black scale-105' : 'bg-gray-200 text-gray-600 border-gray-200 hover:bg-gray-300'}`}><ImageIcon size={18}/> FOTO</button>
+                    <button onClick={() => setActiveTab('video')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all border ${activeTab==='video' ? 'bg-blue-600 text-white border-blue-600 scale-105' : 'bg-gray-200 text-gray-600 border-gray-200 hover:bg-gray-300'}`}><Film size={18}/> VIDEO</button>
+                    <button onClick={() => setActiveTab('gif')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all border ${activeTab==='gif' ? 'bg-yellow-500 text-black border-yellow-500 scale-105' : 'bg-gray-200 text-gray-600 border-gray-200 hover:bg-gray-300'}`}><Gift size={18}/> GIF</button>
                 </div>
-                <button onClick={() => setShowEmailInput(!showEmailInput)} className={`p-3 rounded-full hover:bg-gray-700 transition-colors ${showEmailInput ? 'bg-[--neon-pink] text-black' : 'bg-gray-800 text-white'}`}><Mail size={20}/></button>
             </div>
 
-            {showEmailInput && (
-                <div className="mb-6 p-4 bg-gray-900 rounded-xl border border-gray-700 flex gap-2 animate-in slide-in-from-top-5">
-                    <input type="email" placeholder="Masukkan alamat email..." value={email} onChange={e=>setEmail(e.target.value)} className="flex-1 bg-black border border-gray-600 p-3 rounded text-white focus:border-[--neon-cyan] outline-none" />
-                    <button onClick={handleSendEmail} className="bg-[--neon-cyan] px-6 font-bold rounded text-black hover:bg-white transition-colors">{isSending ? <Loader2 className="animate-spin"/> : 'KIRIM'}</button>
+            {/* INPUT EMAIL: SELALU TERBUKA (PERMANEN) */}
+            <div className="mb-6 p-4 bg-gray-100 rounded-xl border border-gray-300 flex flex-col gap-2 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-widest">
+                    <Mail size={14}/> KIRIM HASIL KE EMAIL
                 </div>
-            )}
+                <div className="flex gap-2 w-full">
+                    <input type="email" placeholder="Masukkan alamat email..." value={email} onChange={e=>setEmail(e.target.value)} className="flex-1 bg-white border border-gray-300 p-3 rounded text-black focus:border-blue-500 outline-none" />
+                    <button onClick={handleSendEmail} className="bg-blue-600 px-6 font-bold rounded text-white hover:bg-blue-700 transition-colors">{isSending ? <Loader2 className="animate-spin"/> : 'KIRIM'}</button>
+                </div>
+            </div>
 
             {(activeTab === 'photo' || activeTab === 'video') ? (
                 <div className="flex-1 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-y-auto mb-4">
                     {(Object.keys(FILTERS) as Array<keyof typeof FILTERS>).map((key) => (
-                        <button key={key} onClick={() => setSelectedFilter(key)} className={`relative h-full w-full rounded-2xl flex flex-col items-center justify-center gap-2 font-black text-sm tracking-widest transition-all overflow-hidden border-4 ${selectedFilter === key ? 'border-white scale-105 z-10 shadow-[0_0_30px_rgba(255,255,255,0.2)]' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: '#1a1a1a' }}>
-                            <div className="w-16 h-16 rounded-full shadow-inner mb-2" style={{ backgroundColor: FILTER_LABELS[key].color }}></div>
-                            <span className="text-white drop-shadow-md">{FILTER_LABELS[key].label}</span>
+                        <button key={key} onClick={() => setSelectedFilter(key)} className={`relative h-full w-full rounded-2xl flex flex-col items-center justify-center gap-2 font-black text-sm tracking-widest transition-all overflow-hidden border-4 bg-white shadow-md ${selectedFilter === key ? 'border-blue-500 scale-105 z-10' : 'border-gray-200 opacity-80 hover:opacity-100 hover:scale-[1.02]'}`}>
+                            <div className="w-16 h-16 rounded-full shadow-inner mb-2 border border-gray-300" style={{ backgroundColor: FILTER_LABELS[key].color }}></div>
+                            <span className="text-black drop-shadow-sm">{FILTER_LABELS[key].label}</span>
                         </button>
                     ))}
                 </div>
             ) : (<div className="flex-1 flex items-center justify-center text-gray-500 italic">Filter hanya tersedia untuk Foto & Video.</div>)}
 
-            <div className="pt-4 border-t border-gray-800 flex justify-between items-center">
-                <button onClick={onReset} className="text-gray-500 hover:text-white flex items-center gap-2 font-bold px-4 py-2 hover:bg-gray-900 rounded-lg transition-colors"><Home size={20}/> MULAI BARU</button>
+            <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
+                <button onClick={onReset} className="text-gray-500 hover:text-red-500 flex items-center gap-2 font-bold px-4 py-2 hover:bg-gray-100 rounded-lg transition-colors"><Home size={20}/> MULAI BARU</button>
                 <div className="flex gap-3">
-                    <button onClick={processAndSaveAll} className="bg-gray-800 text-white px-6 py-4 rounded-xl font-bold text-sm hover:bg-gray-700 transition-colors flex items-center gap-2">{isSaving ? <Loader2 className="animate-spin" size={16}/> : <CloudUpload size={16}/>} SIMPAN</button>
-                    <button onClick={handlePrintManual} className="bg-white text-black px-10 py-4 rounded-xl font-black text-xl hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.4)]"><Printer size={24}/> CETAK FOTO</button>
+                    <button onClick={processAndSaveAll} className="bg-gray-200 text-gray-700 px-6 py-4 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center gap-2">{isSaving ? <Loader2 className="animate-spin" size={16}/> : <CloudUpload size={16}/>} SIMPAN</button>
+                    <button onClick={handlePrintManual} className="bg-black text-white px-10 py-4 rounded-xl font-black text-xl hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_30px_rgba(0,0,0,0.4)]"><Printer size={24}/> CETAK FOTO</button>
                 </div>
             </div>
 
-            {isSaving && (<div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center"><CloudUpload size={48} className="text-[--neon-cyan] animate-bounce mb-2"/><p className="text-[--neon-cyan] font-mono animate-pulse">{statusMsg}</p></div>)}
+            {isSaving && (<div className="absolute inset-0 z-50 bg-white/90 flex flex-col items-center justify-center"><CloudUpload size={48} className="text-blue-500 animate-bounce mb-2"/><p className="text-blue-500 animate-pulse">{statusMsg}</p></div>)}
         </div>
     </div>
   );

@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import { motion, AnimatePresence } from "framer-motion";
-import Mascot from "@/components/Mascot";
 import ResultStage from "@/components/ResultStage"; 
 import { useSmartWebcam } from "@/hooks/useSmartWebcam";
 import { Settings, Camera, Lock, Play, ArrowRight, ChevronLeft, Check } from 'lucide-react';
@@ -28,12 +27,10 @@ export default function ArcadePhotobooth() {
   const [isWaitingNext, setIsWaitingNext] = useState(false);
   const [isRetaking, setIsRetaking] = useState(false);
   
-  // STATE PREVIEW 3 DETIK
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
 
   const { webcamRef, startSingleClip, stopSingleClip, resetClips, videoClips, capturePhoto, devices, activeDeviceId, switchCamera } = useSmartWebcam();
 
-  // Load Frames
   useEffect(() => {
     const savedFrames = localStorage.getItem('MY_FRAMES');
     if (savedFrames) {
@@ -104,14 +101,12 @@ export default function ArcadePhotobooth() {
             newPhotos[index] = shot;
             return newPhotos;
         });
-        
         setCapturedPreview(shot);
         setCountdown(null);
         setIsSessionActive(false); 
 
         setTimeout(() => {
             setCapturedPreview(null); 
-
             if (isRetaking) {
                 setIsRetaking(false);
                 setStep('result');
@@ -123,14 +118,17 @@ export default function ArcadePhotobooth() {
   };
 
   return (
-    <main className="min-h-screen w-full bg-[#0a0a0a] text-white font-mono overflow-hidden flex flex-col">
-      {/* HEADER SETTINGS */}
+    <main className="min-h-screen w-full bg-white text-black overflow-hidden flex flex-col selection:bg-yellow-200">
+      
+      {/* HEADER */}
       <div className="absolute top-4 right-4 z-50">
-           <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-gray-600 hover:text-white transition-colors"><Settings size={20}/></button>
+           <button onClick={() => setShowSettings(!showSettings)} className="p-3 text-black hover:bg-gray-100 rounded-full border-2 border-black shadow-[2px_2px_0px_black] transition-all active:translate-y-1 active:shadow-none"><Settings size={24}/></button>
            {showSettings && (
-              <div className="absolute right-0 mt-2 bg-gray-900 border border-gray-700 p-2 rounded w-48 shadow-xl">
-                  <button onClick={() => window.location.href='/admin'} className="flex items-center gap-2 text-xs p-2 hover:bg-gray-800 w-full text-left mb-2 rounded"><Lock size={12}/> Frame Creator (Admin)</button>
-                  <select className="w-full bg-black text-white p-1 text-[10px] border border-gray-700 rounded mt-2" onChange={(e) => switchCamera(e.target.value)} value={activeDeviceId}>
+              <div className="absolute right-0 mt-2 bg-white border-2 border-black p-4 rounded-xl w-56 shadow-[4px_4px_0px_black]">
+                  <button onClick={() => window.location.href='/admin'} className="flex items-center gap-2 text-sm p-2 hover:bg-yellow-100 w-full text-left rounded font-bold"><Lock size={16}/> Admin Panel</button>
+                  <div className="border-t-2 border-dashed border-gray-300 my-2"></div>
+                  <label className="text-xs font-bold block mb-1">Pilih Kamera:</label>
+                  <select className="w-full bg-gray-50 text-black p-2 text-xs border-2 border-black rounded" onChange={(e) => switchCamera(e.target.value)} value={activeDeviceId}>
                       {devices.map((d) => (<option key={d.deviceId} value={d.deviceId}>{d.label || 'Camera'}</option>))}
                   </select>
               </div>
@@ -139,32 +137,42 @@ export default function ArcadePhotobooth() {
 
       {/* --- STEP 1: HOME --- */}
       {step === 'home' && (
-        <div className="flex-1 flex flex-col items-center justify-center relative">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-[#0a0a0a] to-[#0a0a0a]" />
-            <div className="relative z-10 mb-8 transform scale-150"><Mascot status="idle" /></div>
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setStep('frame-select')} className="relative z-10 bg-white text-black px-12 py-4 rounded-full font-black text-2xl flex items-center gap-3 shadow-[0_0_40px_rgba(255,255,255,0.4)] transition-all">
-                MULAI <Play fill="black" size={24}/>
+        <div className="flex-1 flex flex-col items-center justify-center relative bg-[url('https://www.transparenttextures.com/patterns/graphy.png')]">
+            <div className="relative z-10 mb-8">
+                <img 
+                    src="/logo sebooth.png" 
+                    alt="Sebooth Logo" 
+                    className="w-48 h-auto transform scale-100 drop-shadow-[5px_5px_0px_rgba(0,0,0,0.5)]" 
+                />
+            </div>
+            
+            <h1 className="text-6xl font-bold mb-8 tracking-tight text-center drop-shadow-sm">PHOTOBOOTH<br/><span className="text-4xl font-normal italic text-gray-500">Capture the Fun!</span></h1>
+            
+            <motion.button 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }} 
+                onClick={() => setStep('frame-select')} 
+                className="bg-[#FFE15D] text-black px-12 py-4 rounded-full font-bold text-3xl flex items-center gap-4 border-4 border-black shadow-[6px_6px_0px_black] hover:shadow-[4px_4px_0px_black] active:translate-y-1 active:shadow-none transition-all"
+            >
+                MULAI <Play fill="black" size={32}/>
             </motion.button>
         </div>
       )}
 
       {/* --- STEP 2: FRAME SELECTION --- */}
       {step === 'frame-select' && (
-        <div className="flex-1 flex flex-col p-4 md:p-6 relative bg-[#0a0a0a] overflow-hidden">
-            <h1 className="text-center text-3xl font-black mb-4 text-white tracking-widest shrink-0">PILIH BINGKAI</h1>
+        <div className="flex-1 flex flex-col p-4 md:p-6 relative bg-white bg-[url('https://www.transparenttextures.com/patterns/graphy.png')] overflow-hidden">
+            <h1 className="text-center text-4xl font-bold mb-4 tracking-wider border-b-4 border-black inline-block mx-auto pb-2 px-8 border-dashed">PILIH GAYAMU</h1>
+            
             <div className="flex-1 flex gap-8 items-center justify-center w-full max-w-7xl mx-auto min-h-0 h-[65vh]">
+                {/* PREVIEW KIRI */}
                 <div className="h-[75vh] aspect-[1/3] flex items-center justify-center">
-                    <div className="bg-[#111] border-4 border-gray-800 p-2 rounded-2xl shadow-2xl w-full h-full flex flex-col relative">
-                        <div className="flex-1 bg-white relative overflow-hidden rounded shadow-inner">
+                    <div className="border-black p-3 shadow-[8px_8px_0px_rgba(0,0,0,0.2)] w-full h-full flex flex-col relative transform rotate-[-2deg]">
+                        <div className="flex-1 bg-gray-100 rounded border-3 border-dashed border-gray-300">
                              {selectedFrame && (
                                 <div className="absolute inset-0 w-full h-full">
                                     {selectedFrame.layout.map((pos, i) => (
-                                        <div key={i} style={{ 
-                                            position: 'absolute',
-                                            top: `${(i * 25 + 10)}%`, left: '10%', right: '10%', height: '15%',
-                                            background: '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}>
-                                            <span className="text-gray-400 font-bold text-xl">{i+1}</span>
+                                        <div key={i} style={{ }}>
                                         </div>
                                     ))}
                                     <img src={selectedFrame.imageUrl} className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />
@@ -173,105 +181,101 @@ export default function ArcadePhotobooth() {
                         </div>
                     </div>
                 </div>
+
+                {/* PILIHAN KANAN */}
                 <div className="flex flex-col gap-6 w-1/2 h-[75vh] justify-center">
-                    <div className="w-full bg-[#111] border border-gray-800 rounded-[1.5rem] p-6 relative flex flex-col shadow-2xl h-[400px]">
-                        <div className="absolute -top-3 left-6 bg-[#0a0a0a] px-4 text-gray-400 font-bold text-xs tracking-widest border border-gray-800 rounded-full z-10">KOLEKSI BINGKAI</div>
-                        {frames.length === 0 ? (
-                            <div className="flex-1 flex items-center justify-center text-gray-500 text-center px-8">Belum ada bingkai. Buka /admin</div>
-                        ) : (
-                            <div className="grid grid-cols-3 gap-4 mt-4 overflow-y-auto custom-scrollbar p-2">
-                                {frames.map((frame) => (
-                                    <motion.button key={frame.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSelectedFrame(frame)} className={`aspect-[1/3] rounded-xl relative overflow-hidden border-2 transition-all ${selectedFrame?.id === frame.id ? 'border-[--neon-cyan] ring-2 ring-[--neon-cyan]/50' : 'border-gray-800 opacity-60 hover:opacity-100'}`}>
-                                        <img src={frame.imageUrl} className="w-full h-full object-cover" />
-                                        {selectedFrame?.id === frame.id && (<div className="absolute inset-0 bg-[--neon-cyan]/20 flex items-center justify-center"><Check className="text-white drop-shadow-md" size={32}/></div>)}
-                                    </motion.button>
-                                ))}
-                            </div>
-                        )}
+                    <div className="w-full bg-white border-4 border-black rounded-[2rem] p-6 relative flex flex-col shadow-[8px_8px_0px_black] h-[400px]">
+                        <div className="absolute -top-5 left-8 bg-[#FF6B6B] text-white border-4 border-black px-6 py-2 font-bold text-xl tracking-widest rounded-full z-10 transform -rotate-2">KOLEKSI</div>
+                        
+                        <div className="grid grid-cols-3 gap-4 mt-6 overflow-y-auto custom-scrollbar p-2">
+                            {frames.map((frame) => (
+                                <motion.button key={frame.id} whileHover={{ scale: 1.05 }} onClick={() => setSelectedFrame(frame)} 
+                                    className={`aspect-[1/3] rounded-xl relative overflow-hidden border-4 transition-all ${selectedFrame?.id === frame.id ? 'border-[#4ECDC4] shadow-[0_0_0_4px_#4ECDC4]' : 'border-gray-200 hover:border-gray-400'}`}>
+                                    <img src={frame.imageUrl} className="w-full h-full object-cover" />
+                                    {selectedFrame?.id === frame.id && (<div className="absolute inset-0 bg-[#4ECDC4]/40 flex items-center justify-center"><Check className="text-white drop-shadow-md stroke-[4px]" size={40}/></div>)}
+                                </motion.button>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex justify-end mt-2">
-                        <button onClick={handleStartCapture} disabled={!selectedFrame} className="bg-white text-black px-12 py-4 rounded-full font-black text-xl flex items-center gap-3 shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center">MULAI FOTO <ArrowRight size={24}/></button>
+                        <button onClick={handleStartCapture} disabled={!selectedFrame} className="bg-[#4ECDC4] text-white border-4 border-black px-12 py-4 rounded-full font-bold text-2xl flex items-center gap-3 shadow-[6px_6px_0px_black] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_black] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center">
+                            LANJUT FOTO <ArrowRight size={32}/>
+                        </button>
                     </div>
                 </div>
             </div>
-            <div className="fixed bottom-8 left-8"><button onClick={() => setStep('home')} className="bg-[#1a1a1a] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-[#2a2a2a] transition-all border border-gray-800 text-sm"><ChevronLeft size={18}/> KEMBALI</button></div>
+            
+            <div className="fixed bottom-8 left-8">
+                 <button onClick={() => setStep('home')} className="bg-white text-black px-6 py-3 rounded-full font-bold flex items-center gap-2 border-4 border-black shadow-[4px_4px_0px_black] hover:bg-gray-100 transition-all"><ChevronLeft size={24}/> KEMBALI</button>
+            </div>
         </div>
       )}
 
       {/* --- STEP 3: CAPTURE --- */}
       {step === 'capture' && (
-        <div className="h-screen w-full flex flex-col items-center justify-center bg-black relative">
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-900 relative">
             
-            {/* 1. PREVIEW HASIL 3 DETIK */}
+            {/* HASIL PREVIEW 3 DETIK */}
             <AnimatePresence>
                 {capturedPreview && (
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.8 }} 
-                        animate={{ opacity: 1, scale: 1 }} 
-                        exit={{ opacity: 0 }} 
-                        className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-8"
-                    >
-                        <h2 className="text-[--neon-yellow] text-5xl font-black mb-6 animate-bounce tracking-wider drop-shadow-[0_0_20px_rgba(250,204,21,0.5)]">KEREN! 😎</h2>
-                        <img src={capturedPreview} className="h-[70vh] aspect-video object-contain border-8 border-white rounded-xl shadow-[0_0_50px_rgba(255,255,255,0.2)] transform scale-x-[-1]" />
+                    <motion.div initial={{ opacity: 0, rotate: -10, scale: 0.5 }} animate={{ opacity: 1, rotate: 0, scale: 1 }} exit={{ opacity: 0, y: 100 }} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-8">
+                        <h2 className="text-[#FFE15D] text-6xl font-bold mb-6 animate-bounce tracking-wider [-webkit-text-stroke:2px_white] drop-shadow-[4px_4px_0px_white]">NICE SHOT! 📸</h2>
+                        <img src={capturedPreview} className="h-[60vh] aspect-video object-contain border-8 border-white rounded-xl shadow-2xl transform scale-x-[-1] rotate-2" />
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* 2. COUNTDOWN OVERLAY */}
-            <AnimatePresence>
-                {isSessionActive && countdown !== null && countdown > 0 && (
-                    <motion.div 
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1.5, opacity: 1 }}
-                        exit={{ scale: 2, opacity: 0 }}
-                        key={countdown}
-                        className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
-                    >
-                        <div className="text-[15rem] font-black text-white drop-shadow-[0_0_30px_rgba(0,0,0,0.8)] stroke-black tracking-tighter">
-                            {countdown}
+            {/* !!! COUNTDOWN BESAR DIHAPUS DARI SINI !!! */}
+
+            {/* SIDEBAR TIMELINE DENGAN COUNTDOWN */}
+            <div className="absolute right-0 top-0 bottom-0 w-48 bg-white/30 border-l-4 border-black/40 flex flex-col gap-4 p-4 overflow-y-auto z-40">
+                <h3 className="text-center font-bold text-xl border-b-2 border-black pb-2">TIMELINE</h3>
+                
+                {photos.map((p, i) => {
+                    // Logic: Apakah ini giliran foto ini DAN countdown sedang berjalan?
+                    const isCountingDown = i === currentIndex && countdown !== null && countdown > 0;
+                    
+                    return (
+                        <div key={i} className={`relative w-full aspect-video bg-gray-200 border-4 rounded-lg overflow-hidden shrink-0 flex items-center justify-center ${i === currentIndex ? 'border-[#4ECDC4] shadow-[4px_4px_0px_black]' : 'border-black'}`}>
+                            {p ? (
+                                <img src={p} className="w-full h-full object-cover scale-x-[-1]" />
+                            ) : isCountingDown ? (
+                                // Tampilkan Countdown di sini
+                                <span className="text-[#FF6B6B] font-black text-6xl animate-pulse">{countdown}</span>
+                            ) : (
+                                // Tampilkan Nomor Urut biasa
+                                <span className="text-gray-400 font-bold text-2xl">{i+1}</span>
+                            )}
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* SIDEBAR TIMELINE */}
-            <div className="absolute right-0 top-0 bottom-0 w-48 bg-black/80 border-l border-gray-800 flex flex-col gap-4 p-4 overflow-y-auto z-40 backdrop-blur-md">
-                {photos.map((p, i) => (
-                    <div key={i} className={`relative w-full aspect-video bg-gray-900 border-2 rounded-lg overflow-hidden shrink-0 flex items-center justify-center ${i === currentIndex ? 'border-[--neon-cyan] shadow-[0_0_15px_var(--neon-cyan)]' : 'border-gray-700 opacity-60'}`}>
-                        {p ? <img src={p} className="w-full h-full object-cover scale-x-[-1]" /> : <span className="text-gray-600 font-bold">{i+1}</span>}
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* WEBCAM & CONTROLS */}
-            <div className="relative w-full h-full">
-                <Webcam ref={webcamRef} audio={false} videoConstraints={{ deviceId: activeDeviceId, width: 1920, height: 1080 }} className="w-full h-full object-cover transform scale-x-[-1]" />
+            {/* WEBCAM AREA */}
+            <div className="relative w-full h-full bg-black">
+                <Webcam ref={webcamRef} audio={false} videoConstraints={{ deviceId: activeDeviceId, width: 1920, height: 1080 }} className="w-full h-full object-cover transform scale-x-[-1] opacity-90" />
                 
                 <AnimatePresence>
-                    {/* TOMBOL MULAI */}
+                    {/* TOMBOL SHUTTER */}
                     {!isSessionActive && !isWaitingNext && !capturedPreview && (
-                        <div className="absolute inset-x-0 bottom-16 flex justify-center z-40">
-                            <button onClick={startSession} className="bg-white text-black px-16 py-6 rounded-full font-black text-3xl flex items-center gap-4 animate-bounce hover:scale-105 transition-transform shadow-[0_0_50px_rgba(255,255,255,0.5)]">
-                                <Camera size={40}/> MULAI FOTO
+                        <div className="absolute inset-x-0 bottom-12 flex justify-center z-40">
+                            <button onClick={startSession} className="bg-white/50 text-black px-8 py-4 rounded-full font-bold text-4xl flex items-center gap-4 animate-bounce border-4 border-black shadow-[0_8px_0px_rgba(0,0,0,0.5)] active:translate-y-2 active:shadow-none transition-all">
+                                <Camera size={48}/> AMBIL FOTO
                             </button>
                         </div>
                     )}
 
-                    {/* OVERLAY LANJUT POSE (TRANSPARAN + STROKE TEXT) */}
+                    {/* OVERLAY LANJUT */}
                     {isWaitingNext && !capturedPreview && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none animate-in fade-in duration-300">
-                            
-                            {/* TEKS DENGAN STROKE HITAM */}
-                            <div className="text-white text-6xl font-black mb-8 tracking-widest animate-pulse [-webkit-text-stroke:3px_black] drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none animate-in zoom-in duration-300">
+                            <div className="text-white text-6xl font-bold mb-5 tracking-widest animate-pulse [-webkit-text-stroke:3px_white] drop-shadow-[4px_4px_0px_black]">
                                 FOTO {currentIndex + 1} SELESAI!
                             </div>
-                            
-                            {/* TOMBOL DENGAN POINTER EVENTS AUTO AGAR BISA DIKLIK */}
-                            <button onClick={nextPose} className="pointer-events-auto bg-[--neon-yellow] text-black px-24 py-10 rounded-3xl font-black text-5xl flex items-center gap-6 hover:scale-110 transition-transform shadow-[0_0_60px_rgba(250,204,21,0.8)] border-4 border-white [-webkit-text-stroke:1px_white]">
+                            <button onClick={nextPose} className="pointer-events-auto bg-[#FFE15D]/40 text-black px-12 py-6 rounded-[3rem] font-bold text-5xl flex items-center gap-6 hover:scale-105 transition-transform border-2 border-black/50">
                                 {currentIndex < (selectedFrame?.photoCount || 3) - 1 ? (
-                                    <>LANJUT POSE {currentIndex + 2} <ArrowRight size={56}/></>
+                                    <>LANJUT POSE {currentIndex + 2} <ArrowRight size={40}/></>
                                 ) : (
-                                    <>LIHAT HASIL <ArrowRight size={56}/></>
+                                    <>LIHAT HASIL <Check size={40}/></>
                                 )}
                             </button>
                         </div>
@@ -283,7 +287,7 @@ export default function ArcadePhotobooth() {
 
       {/* --- STEP 4: RESULT --- */}
       {step === 'result' && selectedFrame && (
-        <div className="h-screen w-full bg-[#0a0a0a]">
+        <div className="h-screen w-full bg-white">
             <ResultStage 
                 photos={photos} 
                 videoClips={videoClips} 
