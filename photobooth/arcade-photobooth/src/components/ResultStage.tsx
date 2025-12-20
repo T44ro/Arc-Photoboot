@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Film, Image as ImageIcon, Gift, Loader2, Printer, Home, CloudUpload, RefreshCcw } from 'lucide-react';
+import { Mail, Film, Image as ImageIcon, Gift, Loader2, Printer, Home, CloudUpload, RefreshCcw, Check } from 'lucide-react';
 import { useGifGenerator } from '@/hooks/useGifGenerator';
-// import QRCode from 'react-qr-code'; // QR Code dihapus
+// import QRCode from 'react-qr-code'; 
 import { v4 as uuidv4 } from 'uuid';
 
 const BASE_URL = "http://192.168.1.8:3000"; 
@@ -23,27 +23,22 @@ const FILTER_LABELS = {
 };
 
 // --- 2. CONFIG: DIMENSIONS ---
-// A. Referensi Admin
 const ADMIN_CANVAS_WIDTH = 300;
 const ADMIN_CANVAS_HEIGHT = 900;
 const ADMIN_PHOTO_WIDTH = 250;
-const ADMIN_PHOTO_HEIGHT = 140.625; // 16:9
+const ADMIN_PHOTO_HEIGHT = 140.625; 
 const ADMIN_GAP = 10;
 
-// B. Hasil Akhir (Scale 4x)
 const STRIP_WIDTH = 1200; 
 const STRIP_HEIGHT = 3600; 
 const RATIO = STRIP_WIDTH / ADMIN_CANVAS_WIDTH; // 4
 
-// C. Elemen Scaled
-const PHOTO_BOX_WIDTH = ADMIN_PHOTO_WIDTH * RATIO; // 1000
-const PHOTO_BOX_HEIGHT = ADMIN_PHOTO_HEIGHT * RATIO; // 562.5
-const GAP_Y = ADMIN_GAP * RATIO; // 40
+const PHOTO_BOX_WIDTH = ADMIN_PHOTO_WIDTH * RATIO; 
+const PHOTO_BOX_HEIGHT = ADMIN_PHOTO_HEIGHT * RATIO; 
+const GAP_Y = ADMIN_GAP * RATIO; 
 
-// D. Preview Screen
 const PREVIEW_WIDTH = ADMIN_CANVAS_WIDTH;
 const PREVIEW_HEIGHT = ADMIN_CANVAS_HEIGHT;
-const GAP_PREVIEW = ADMIN_GAP;
 
 export default function ResultStage({ photos, videoClips, frameConfig, uploadedFrameLayer, onReset, photoAdjustments, onRetakePhoto }: any) {
   const [email, setEmail] = useState('');
@@ -104,9 +99,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
       return uploadedFrameLayer;
   };
 
-  // =================================================================================
-  // FUNGSI 1: BAKE FOTO STRIP (NO CLIPPING)
-  // =================================================================================
+  // --- BAKE PHOTO STRIP ---
   const bakePhotoStripManually = async () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -171,37 +164,26 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     return canvas.toDataURL('image/jpeg', 0.95);
   };
 
-
-  // =================================================================================
-  // FUNGSI 2: GENERATE VIDEO STRIP (FIX AbortError)
-  // =================================================================================
+  // --- GENERATE VIDEO STRIP ---
   const generateAndSaveVideoStrip = async () => {
     if (!videoClips || videoClips.length === 0 || !videoStripRef.current) return;
     
     return new Promise<void>(async (resolve) => {
         const videoElements = Array.from(videoStripRef.current!.querySelectorAll('video'));
-        
-        // --- PERBAIKAN DI SINI (Handle AbortError) ---
         videoElements.forEach(v => { 
             v.muted = true; 
             v.loop = true;
             v.currentTime = 0; 
-            // Tambahkan .catch() untuk menangkap AbortError jika pause dipanggil terlalu cepat
             v.play().catch(e => {
-                if (e.name !== 'AbortError') {
-                    console.error("Video play error:", e);
-                }
+                if (e.name !== 'AbortError') console.error(e);
             }); 
         });
         
-        // BUFFER LEBIH LAMA AGAR VIDEO STABIL
         await new Promise(r => setTimeout(r, 3000));
 
         const canvas = document.createElement('canvas');
         canvas.width = STRIP_WIDTH;
         canvas.height = STRIP_HEIGHT;
-
-        // TEMPEL KE DOM AGAR BROWSER RENDER PRIORITAS TINGGI (FIX GLITCH)
         canvas.style.position = 'fixed';
         canvas.style.left = '-9999px';
         canvas.style.top = '0px';
@@ -219,7 +201,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
             });
         }
 
-        const stream = canvas.captureStream(30); // 30 FPS
+        const stream = canvas.captureStream(30); 
         const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
         const chunks: Blob[] = [];
         
@@ -230,11 +212,9 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
             setFinalVideoUrl(URL.createObjectURL(blob)); 
             await saveToLocalDisk(blob, 'final-strip-video.mp4');
             
-            // CLEANUP
             videoElements.forEach(v => v.pause());
             if (document.body.contains(canvas)) document.body.removeChild(canvas);
             
-            // HENTIKAN LOOP GAMBAR
             if (intervalId.current) clearInterval(intervalId.current);
             resolve();
         };
@@ -243,7 +223,6 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
 
         const ctx = canvas.getContext('2d', { alpha: false });
         
-        // --- DRAW FUNCTION (DIJALANKAN DENGAN SETINTERVAL AGAR STABIL) ---
         const drawFrame = () => {
             if (recorder.state === 'inactive') return;
             if (ctx) {
@@ -289,10 +268,8 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
             }
         };
 
-        // --- GUNAKAN INTERVAL 33ms (approx 30 FPS) UTK MENGHINDARI GLITCH ---
         const intervalId = { current: setInterval(drawFrame, 33) };
         
-        // --- STOP AFTER 3 SECONDS ---
         setTimeout(() => { 
             recorder.stop(); 
             clearInterval(intervalId.current);
@@ -300,7 +277,6 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     });
   };
 
-  // --- SAVE PROCESS ---
   const processAndSaveAll = async () => {
     setIsSaving(true);
     try {
@@ -368,38 +344,20 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   return (
     <div className="flex h-screen w-full bg-white text-black overflow-hidden">
         
-        {/* --- STYLE CETAK KHUSUS (SOLUSI TERTUMPUK) --- */}
+        {/* PRINT STYLES */}
         <style jsx global>{`
             @media print {
-                @page {
-                    size: 4in 6in; /* Set ukuran kertas 4R */
-                    margin: 0;     /* Hilangkan margin printer */
-                }
-                body {
-                    margin: 0;
-                    padding: 0;
-                    -webkit-print-color-adjust: exact;
-                }
-                #print-area {
-                    display: flex !important; /* Paksa Flexbox */
-                    flex-direction: row !important; /* Paksa Bersebelahan */
-                    width: 100vw !important;
-                    height: 100vh !important;
-                    max-width: 4in !important;
-                    max-height: 6in !important;
-                }
-                .print-strip {
-                    width: 50% !important; /* Paksa lebar 50% untuk tiap strip */
-                    height: 100% !important;
-                    object-fit: cover !important;
-                    display: block !important;
-                }
+                @page { size: 4in 6in; margin: 0; }
+                body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                #print-area { display: flex !important; flex-direction: row !important; width: 100vw !important; height: 100vh !important; }
+                .print-strip { width: 50% !important; height: 100% !important; object-fit: cover !important; display: block !important; }
             }
         `}</style>
 
         {/* KIRI: PREVIEW */}
-        <div className="w-1/3 h-full flex items-center justify-center bg-gray-50 border-r border-gray-200 p-8 relative print:w-full print:h-full print:border-none print:bg-white print:p-0">
-            <div className="transform scale-[0.65] origin-center shadow-[0_0_50px_rgba(0,0,0,0.2)] print:hidden">
+        <div className="w-[45%] h-full flex items-center justify-center bg-gray-50 border-r border-gray-200 p-8 relative print:w-full print:h-full print:border-none print:bg-white print:p-0">
+            {/* SCALE DIUBAH JADI 0.9 (90%) */}
+            <div className="transform scale-[0.9] origin-center shadow-[0_0_50px_rgba(0,0,0,0.2)] print:hidden">
                 {/* PHOTO PREVIEW */}
                 {activeTab === 'photo' && (
                   <div className="relative bg-white p-2 border border-gray-300" style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}>
@@ -442,7 +400,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 )}
             </div>
 
-            {/* --- AREA PRINT (Fixed Side-by-Side) --- */}
+            {/* PRINT AREA */}
             <div id="print-area" className="hidden print:flex w-full h-full bg-white fixed inset-0 z-[9999] p-0 m-0">
                  {finalStripUrl && (
                     <>
@@ -466,15 +424,34 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
 
         {/* KANAN: KONTROL */}
         <div className="w-2/3 h-full flex flex-col p-8 print:hidden">
-            <div className="flex justify-between items-center mb-6">
-                <div className="flex gap-4">
-                    <button onClick={() => setActiveTab('photo')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all border ${activeTab==='photo' ? 'bg-black text-white border-black scale-105' : 'bg-gray-200 text-gray-600 border-gray-200 hover:bg-gray-300'}`}><ImageIcon size={18}/> FOTO</button>
-                    <button onClick={() => setActiveTab('video')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all border ${activeTab==='video' ? 'bg-blue-600 text-white border-blue-600 scale-105' : 'bg-gray-200 text-gray-600 border-gray-200 hover:bg-gray-300'}`}><Film size={18}/> VIDEO</button>
-                    <button onClick={() => setActiveTab('gif')} className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all border ${activeTab==='gif' ? 'bg-yellow-500 text-black border-yellow-500 scale-105' : 'bg-gray-200 text-gray-600 border-gray-200 hover:bg-gray-300'}`}><Gift size={18}/> GIF</button>
+            
+            {/* BAGIAN ATAS (HEADER): FILTER (DIPINDAHKAN KE SINI) */}
+            <div className="mb-6">
+                <div className="flex justify-between items-end mb-2">
+                    <h3 className="font-bold text-gray-400 text-xs tracking-widest uppercase">PILIH FILTER</h3>
                 </div>
+                {(activeTab === 'photo' || activeTab === 'video') ? (
+                    <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                        {(Object.keys(FILTERS) as Array<keyof typeof FILTERS>).map((key) => (
+                            <button 
+                                key={key} 
+                                onClick={() => setSelectedFilter(key)} 
+                                className={`flex-shrink-0 w-24 h-24 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all border-4 ${selectedFilter === key ? 'border-blue-500 bg-white shadow-lg scale-105' : 'border-gray-200 bg-gray-50 hover:bg-white hover:border-gray-300'}`}
+                            >
+                                <div className="w-10 h-10 rounded-full shadow-inner mb-1 border border-gray-200" style={{ backgroundColor: FILTER_LABELS[key].color }}></div>
+                                <span className={`text-[10px] font-bold uppercase ${selectedFilter === key ? 'text-black' : 'text-gray-500'}`}>{FILTER_LABELS[key].label}</span>
+                                {selectedFilter === key && <div className="bg-blue-500 rounded-full p-0.5 text-white"><Check size={10}/></div>}
+                            </button>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="h-24 flex items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 text-sm italic">
+                        Filter tidak tersedia untuk GIF
+                    </div>
+                )}
             </div>
 
-            {/* INPUT EMAIL: SELALU TERBUKA (PERMANEN) */}
+            {/* EMAIL INPUT (PERMANEN) */}
             <div className="mb-6 p-4 bg-gray-100 rounded-xl border border-gray-300 flex flex-col gap-2 shadow-sm">
                 <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-widest">
                     <Mail size={14}/> KIRIM HASIL KE EMAIL
@@ -485,19 +462,38 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 </div>
             </div>
 
-            {(activeTab === 'photo' || activeTab === 'video') ? (
-                <div className="flex-1 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-y-auto mb-4">
-                    {(Object.keys(FILTERS) as Array<keyof typeof FILTERS>).map((key) => (
-                        <button key={key} onClick={() => setSelectedFilter(key)} className={`relative h-full w-full rounded-2xl flex flex-col items-center justify-center gap-2 font-black text-sm tracking-widest transition-all overflow-hidden border-4 bg-white shadow-md ${selectedFilter === key ? 'border-blue-500 scale-105 z-10' : 'border-gray-200 opacity-80 hover:opacity-100 hover:scale-[1.02]'}`}>
-                            <div className="w-16 h-16 rounded-full shadow-inner mb-2 border border-gray-300" style={{ backgroundColor: FILTER_LABELS[key].color }}></div>
-                            <span className="text-black drop-shadow-sm">{FILTER_LABELS[key].label}</span>
-                        </button>
-                    ))}
+            {/* BAGIAN TENGAH (CONTENT): MEDIA TOGGLES (DIPINDAHKAN KE SINI & DIBUAT MENCOLOK) */}
+            <div className="flex-1 flex flex-col gap-4 justify-center mb-6">
+                <div className="flex justify-between items-end">
+                    <h3 className="font-bold text-gray-400 text-xs tracking-widest uppercase">PILIH FORMAT HASIL</h3>
                 </div>
-            ) : (<div className="flex-1 flex items-center justify-center text-gray-500 italic">Filter hanya tersedia untuk Foto & Video.</div>)}
+                <div className="grid grid-cols-3 gap-4 h-full max-h-64">
+                    <button onClick={() => setActiveTab('photo')} className={`relative rounded-3xl flex flex-col items-center justify-center gap-4 transition-all border-4 overflow-hidden group ${activeTab==='photo' ? 'bg-black text-white border-black shadow-2xl scale-105 z-10' : 'bg-white text-black border-gray-200 hover:border-gray-400 hover:bg-gray-50'}`}>
+                        <div className={`p-4 rounded-full ${activeTab==='photo' ? 'bg-white text-black' : 'bg-gray-200 text-gray-600 group-hover:bg-black group-hover:text-white transition-colors'}`}>
+                            <ImageIcon size={32} strokeWidth={2.5}/>
+                        </div>
+                        <span className="font-black text-xl tracking-widest">FOTO</span>
+                    </button>
 
+                    <button onClick={() => setActiveTab('video')} className={`relative rounded-3xl flex flex-col items-center justify-center gap-4 transition-all border-4 overflow-hidden group ${activeTab==='video' ? 'bg-blue-600 text-white border-blue-600 shadow-2xl scale-105 z-10' : 'bg-white text-black border-gray-200 hover:border-blue-400 hover:bg-blue-50'}`}>
+                        <div className={`p-4 rounded-full ${activeTab==='video' ? 'bg-white text-blue-600' : 'bg-gray-200 text-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-colors'}`}>
+                            <Film size={32} strokeWidth={2.5}/>
+                        </div>
+                        <span className="font-black text-xl tracking-widest">VIDEO</span>
+                    </button>
+
+                    <button onClick={() => setActiveTab('gif')} className={`relative rounded-3xl flex flex-col items-center justify-center gap-4 transition-all border-4 overflow-hidden group ${activeTab==='gif' ? 'bg-yellow-400 text-black border-yellow-400 shadow-2xl scale-105 z-10' : 'bg-white text-black border-gray-200 hover:border-yellow-400 hover:bg-yellow-50'}`}>
+                        <div className={`p-4 rounded-full ${activeTab==='gif' ? 'bg-black text-yellow-400' : 'bg-gray-200 text-gray-600 group-hover:bg-yellow-400 group-hover:text-black transition-colors'}`}>
+                            <Gift size={32} strokeWidth={2.5}/>
+                        </div>
+                        <span className="font-black text-xl tracking-widest">GIF</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* FOOTER: ACTION BUTTONS */}
             <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
-                <button onClick={onReset} className="bg-blue-200 text-gray-700 px-15 py-5 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center"><Home size={20}/> MULAI BARU</button>
+                <button onClick={onReset} className="bg-yellow-400 text-gray-700 px-15 py-5 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center"><Home size={20}/> MULAI BARU</button>
                 <div className="flex gap-3">
                     <button onClick={processAndSaveAll} className="bg-gray-200 text-gray-700 px-6 py-4 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center gap-2">{isSaving ? <Loader2 className="animate-spin" size={16}/> : <CloudUpload size={16}/>} SIMPAN</button>
                     <button onClick={handlePrintManual} className="bg-black text-white px-10 py-4 rounded-xl font-black text-xl hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_30px_rgba(0,0,0,0.4)]"><Printer size={24}/> CETAK FOTO</button>
