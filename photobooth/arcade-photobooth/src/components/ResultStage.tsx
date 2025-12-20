@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Film, Image as ImageIcon, Gift, Loader2, Printer, Home, CloudUpload, RefreshCcw } from 'lucide-react';
 import { useGifGenerator } from '@/hooks/useGifGenerator';
-import QRCode from 'react-qr-code';
+// import QRCode from 'react-qr-code'; // QR Code dihapus
 import { v4 as uuidv4 } from 'uuid';
 
 const BASE_URL = "http://192.168.1.8:3000"; 
@@ -55,15 +55,13 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   
   const [selectedFilter, setSelectedFilter] = useState<keyof typeof FILTERS>('normal');
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
+  const [finalStripUrl, setFinalStripUrl] = useState<string | null>(null);
 
   const { gifUrl, isGenerating, generateGif } = useGifGenerator(photos);
   const hasProcessed = useRef(false);
   const videoStripRef = useRef<HTMLDivElement>(null);
 
   const downloadLink = `${BASE_URL}/downloads/${sessionId}`;
-
-  // --- HAPUS STYLE FONT CUSTOM DI SINI ---
-  // Kita biarkan inherit dari global layout agar sama dengan page lain
 
   useEffect(() => {
     if (photos.length > 0 && !hasProcessed.current) {
@@ -121,7 +119,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const totalHeightBaking = (PHOTO_BOX_HEIGHT * photos.length) + (GAP_Y * (photos.length - 1));
-    const startY = (STRIP_HEIGHT - totalHeightBaking) / 2;
+    const startY = (STRIP_HEIGHT - totalHeightBaking) / 2; 
     const startX = (STRIP_WIDTH - PHOTO_BOX_WIDTH) / 2;
 
     for (let i = 0; i < photos.length; i++) {
@@ -165,7 +163,6 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     }
 
     ctx.fillStyle = '#000000';
-    // Menggunakan sans-serif umum agar aman, atau ganti dengan font spesifik jika dimuat di canvas
     ctx.font = 'bold 40px sans-serif'; 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -176,18 +173,25 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
 
 
   // =================================================================================
-  // FUNGSI 2: GENERATE VIDEO STRIP (GLITCH FIX & 3 DETIK)
+  // FUNGSI 2: GENERATE VIDEO STRIP (FIX AbortError)
   // =================================================================================
   const generateAndSaveVideoStrip = async () => {
     if (!videoClips || videoClips.length === 0 || !videoStripRef.current) return;
     
     return new Promise<void>(async (resolve) => {
         const videoElements = Array.from(videoStripRef.current!.querySelectorAll('video'));
+        
+        // --- PERBAIKAN DI SINI (Handle AbortError) ---
         videoElements.forEach(v => { 
             v.muted = true; 
             v.loop = true;
             v.currentTime = 0; 
-            v.play().catch(e => console.error(e)); 
+            // Tambahkan .catch() untuk menangkap AbortError jika pause dipanggil terlalu cepat
+            v.play().catch(e => {
+                if (e.name !== 'AbortError') {
+                    console.error("Video play error:", e);
+                }
+            }); 
         });
         
         // BUFFER LEBIH LAMA AGAR VIDEO STABIL
@@ -307,6 +311,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
 
         setStatusMsg('Render Strip...');
         const stripBase64 = await bakePhotoStripManually();
+        setFinalStripUrl(stripBase64);
         await saveToLocalDisk(stripBase64, 'final-strip.jpg');
 
         setStatusMsg('Render Video...');
@@ -352,12 +357,46 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     finally { setIsSending(false); setStatusMsg(""); }
   };
 
-  const handlePrintManual = () => { window.print(); };
+  const handlePrintManual = async () => { 
+      if (!finalStripUrl) {
+          const strip = await bakePhotoStripManually();
+          setFinalStripUrl(strip);
+      }
+      setTimeout(() => window.print(), 500);
+  };
 
   return (
-    // DI SINI: Hapus customFontClass, biarkan inherit dari layout global
     <div className="flex h-screen w-full bg-white text-black overflow-hidden">
         
+        {/* --- STYLE CETAK KHUSUS (SOLUSI TERTUMPUK) --- */}
+        <style jsx global>{`
+            @media print {
+                @page {
+                    size: 4in 6in; /* Set ukuran kertas 4R */
+                    margin: 0;     /* Hilangkan margin printer */
+                }
+                body {
+                    margin: 0;
+                    padding: 0;
+                    -webkit-print-color-adjust: exact;
+                }
+                #print-area {
+                    display: flex !important; /* Paksa Flexbox */
+                    flex-direction: row !important; /* Paksa Bersebelahan */
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    max-width: 4in !important;
+                    max-height: 6in !important;
+                }
+                .print-strip {
+                    width: 50% !important; /* Paksa lebar 50% untuk tiap strip */
+                    height: 100% !important;
+                    object-fit: cover !important;
+                    display: block !important;
+                }
+            }
+        `}</style>
+
         {/* KIRI: PREVIEW */}
         <div className="w-1/3 h-full flex items-center justify-center bg-gray-50 border-r border-gray-200 p-8 relative print:w-full print:h-full print:border-none print:bg-white print:p-0">
             <div className="transform scale-[0.65] origin-center shadow-[0_0_50px_rgba(0,0,0,0.2)] print:hidden">
@@ -403,20 +442,14 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 )}
             </div>
 
-            {/* PRINT AREA */}
-            <div id="print-area" className="hidden print:flex flex-col items-center justify-center w-full h-full bg-white fixed inset-0 z-[9999]">
-                 <div className="relative bg-white" style={{ width: '100%', maxWidth: '300px' }}>
-                    <div className="relative w-full" style={{ height: PREVIEW_HEIGHT }}>
-                        {photos.map((src:string, i:number) => (
-                            <div key={i} style={getContainerStyle(i)}>
-                                <img src={src} className="w-full h-full object-cover transform scale-x-[-1]" style={getFilterStyle()} />
-                            </div>
-                        ))}
-                        {uploadedFrameLayer && (<img src={typeof uploadedFrameLayer === 'object' ? uploadedFrameLayer.url : uploadedFrameLayer} className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />)}
-                        <div className="absolute bottom-0 left-0 right-0 text-center text-black font-bold uppercase tracking-widest text-[10px]">SE-BOOTH</div>
-                    </div>
-                    <div className="text-center mt-4"><QRCode value={downloadLink} size={50} fgColor="#000000" /></div>
-                 </div>
+            {/* --- AREA PRINT (Fixed Side-by-Side) --- */}
+            <div id="print-area" className="hidden print:flex w-full h-full bg-white fixed inset-0 z-[9999] p-0 m-0">
+                 {finalStripUrl && (
+                    <>
+                        <img src={finalStripUrl} className="print-strip" alt="Left Strip" />
+                        <img src={finalStripUrl} className="print-strip" alt="Right Strip" />
+                    </>
+                 )}
             </div>
 
             {/* HIDDEN VIDEO REFS */}
@@ -464,7 +497,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
             ) : (<div className="flex-1 flex items-center justify-center text-gray-500 italic">Filter hanya tersedia untuk Foto & Video.</div>)}
 
             <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
-                <button onClick={onReset} className="text-gray-500 hover:text-red-500 flex items-center gap-2 font-bold px-4 py-2 hover:bg-gray-100 rounded-lg transition-colors"><Home size={20}/> MULAI BARU</button>
+                <button onClick={onReset} className="bg-blue-200 text-gray-700 px-15 py-5 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center"><Home size={20}/> MULAI BARU</button>
                 <div className="flex gap-3">
                     <button onClick={processAndSaveAll} className="bg-gray-200 text-gray-700 px-6 py-4 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center gap-2">{isSaving ? <Loader2 className="animate-spin" size={16}/> : <CloudUpload size={16}/>} SIMPAN</button>
                     <button onClick={handlePrintManual} className="bg-black text-white px-10 py-4 rounded-xl font-black text-xl hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_30px_rgba(0,0,0,0.4)]"><Printer size={24}/> CETAK FOTO</button>
