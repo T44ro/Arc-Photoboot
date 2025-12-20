@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Film, Image as ImageIcon, Gift, Loader2, Printer, Home, CloudUpload, RefreshCcw, Check } from 'lucide-react';
+import { Mail, Film, Image as ImageIcon, Gift, Loader2, Printer, Home, CloudUpload, RefreshCcw, Check, Plus, Minus } from 'lucide-react';
 import { useGifGenerator } from '@/hooks/useGifGenerator';
-// import QRCode from 'react-qr-code'; 
 import { v4 as uuidv4 } from 'uuid';
 
 const BASE_URL = "http://192.168.1.8:3000"; 
@@ -48,6 +47,9 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
   
+  // STATE JUMLAH CETAK (Minimal 2, Selalu Genap)
+  const [printCount, setPrintCount] = useState(2); 
+
   const [selectedFilter, setSelectedFilter] = useState<keyof typeof FILTERS>('normal');
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
   const [finalStripUrl, setFinalStripUrl] = useState<string | null>(null);
@@ -55,8 +57,6 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   const { gifUrl, isGenerating, generateGif } = useGifGenerator(photos);
   const hasProcessed = useRef(false);
   const videoStripRef = useRef<HTMLDivElement>(null);
-
-  const downloadLink = `${BASE_URL}/downloads/${sessionId}`;
 
   useEffect(() => {
     if (photos.length > 0 && !hasProcessed.current) {
@@ -72,6 +72,10 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   }, [gifUrl]);
 
   const getFilterStyle = () => ({ filter: FILTERS[selectedFilter] });
+
+  // HANDLER JUMLAH CETAK
+  const increasePrintCount = () => setPrintCount(prev => prev + 2);
+  const decreasePrintCount = () => setPrintCount(prev => Math.max(2, prev - 2));
 
   // Style Preview HTML
   const getContainerStyle = (idx: number) => {
@@ -99,7 +103,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
       return uploadedFrameLayer;
   };
 
-  // --- BAKE PHOTO STRIP ---
+  // --- BAKE PHOTO STRIP (FIXED: NO MIRROR) ---
   const bakePhotoStripManually = async () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -133,7 +137,9 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
         ctx.translate(centerX, centerY);
         ctx.translate(adj.x * RATIO, adj.y * RATIO); 
         if (adj.rotation) ctx.rotate((adj.rotation * Math.PI) / 180);
-        ctx.scale(-adj.scale, adj.scale); 
+        
+        // NO MIRROR
+        ctx.scale(adj.scale, adj.scale); 
 
         const imgRatio = img.width / img.height; 
         const boxRatio = PHOTO_BOX_WIDTH / PHOTO_BOX_HEIGHT; 
@@ -164,7 +170,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
     return canvas.toDataURL('image/jpeg', 0.95);
   };
 
-  // --- GENERATE VIDEO STRIP ---
+  // --- GENERATE VIDEO STRIP (FIXED: NO MIRROR & AbortError) ---
   const generateAndSaveVideoStrip = async () => {
     if (!videoClips || videoClips.length === 0 || !videoStripRef.current) return;
     
@@ -240,6 +246,8 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                     ctx.translate(centerX, centerY);
                     ctx.translate(adj.x * RATIO, adj.y * RATIO);
                     if (adj.rotation) ctx.rotate((adj.rotation * Math.PI) / 180);
+                    
+                    // NO MIRROR
                     ctx.scale(adj.scale, adj.scale);
 
                     const vW = v.videoWidth || 1280;
@@ -344,26 +352,49 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
   return (
     <div className="flex h-screen w-full bg-white text-black overflow-hidden">
         
-        {/* PRINT STYLES */}
+        {/* PRINT STYLES UNTUK MULTI-PAGE CETAK */}
         <style jsx global>{`
             @media print {
                 @page { size: 4in 6in; margin: 0; }
                 body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
-                #print-area { display: flex !important; flex-direction: row !important; width: 100vw !important; height: 100vh !important; }
-                .print-strip { width: 50% !important; height: 100% !important; object-fit: cover !important; display: block !important; }
+                
+                /* Tampilkan container sebagai block agar bisa menampung banyak halaman */
+                #print-area { 
+                    display: block !important; 
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                }
+
+                /* Setiap "Page" berisi 2 strip (layout 4R) */
+                .print-page-container {
+                    width: 4in;
+                    height: 6in;
+                    display: flex !important;
+                    flex-direction: row !important;
+                    page-break-after: always; /* Paksa ganti halaman setelah setiap lembar */
+                    break-after: page;
+                }
+
+                .print-strip { 
+                    width: 50% !important; 
+                    height: 100% !important; 
+                    object-fit: cover !important; 
+                    display: block !important; 
+                }
             }
         `}</style>
 
-        {/* KIRI: PREVIEW */}
+        {/* KIRI: PREVIEW (DIPERBESAR) */}
         <div className="w-[45%] h-full flex items-center justify-center bg-gray-50 border-r border-gray-200 p-8 relative print:w-full print:h-full print:border-none print:bg-white print:p-0">
-            {/* SCALE DIUBAH JADI 0.9 (90%) */}
             <div className="transform scale-[0.9] origin-center shadow-[0_0_50px_rgba(0,0,0,0.2)] print:hidden">
                 {/* PHOTO PREVIEW */}
                 {activeTab === 'photo' && (
                   <div className="relative bg-white p-2 border border-gray-300" style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}>
                       {photos.map((src:string, i:number) => (
                           <div key={i} style={getContainerStyle(i)} className="relative group cursor-pointer" onClick={() => onRetakePhoto(i)}>
-                              <img src={src} className="w-full h-full object-cover transform scale-x-[-1]" style={getFilterStyle()} />
+                              <img src={src} className="w-full h-full object-cover" style={getFilterStyle()} />
                               {!isSaving && (
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-opacity">
                                       <div className="bg-red-600 text-white px-2 py-1 rounded flex items-center gap-1"><RefreshCcw size={10}/> RETAKE</div>
@@ -400,14 +431,15 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 )}
             </div>
 
-            {/* PRINT AREA */}
-            <div id="print-area" className="hidden print:flex w-full h-full bg-white fixed inset-0 z-[9999] p-0 m-0">
-                 {finalStripUrl && (
-                    <>
+            {/* --- AREA PRINT (LOGIKA MULTI-HALAMAN) --- */}
+            {/* Logic: printCount 2 = 1 page, printCount 4 = 2 pages */}
+            <div id="print-area" className="hidden print:block bg-white fixed inset-0 z-[9999] p-0 m-0">
+                 {finalStripUrl && Array.from({ length: Math.ceil(printCount / 2) }).map((_, pageIndex) => (
+                    <div key={pageIndex} className="print-page-container">
                         <img src={finalStripUrl} className="print-strip" alt="Left Strip" />
                         <img src={finalStripUrl} className="print-strip" alt="Right Strip" />
-                    </>
-                 )}
+                    </div>
+                 ))}
             </div>
 
             {/* HIDDEN VIDEO REFS */}
@@ -423,9 +455,9 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
         </div>
 
         {/* KANAN: KONTROL */}
-        <div className="w-2/3 h-full flex flex-col p-8 print:hidden">
+        <div className="w-[55%] h-full flex flex-col p-8 print:hidden">
             
-            {/* BAGIAN ATAS (HEADER): FILTER (DIPINDAHKAN KE SINI) */}
+            {/* BAGIAN ATAS (HEADER): FILTER */}
             <div className="mb-6">
                 <div className="flex justify-between items-end mb-2">
                     <h3 className="font-bold text-gray-400 text-xs tracking-widest uppercase">PILIH FILTER</h3>
@@ -462,7 +494,7 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 </div>
             </div>
 
-            {/* BAGIAN TENGAH (CONTENT): MEDIA TOGGLES (DIPINDAHKAN KE SINI & DIBUAT MENCOLOK) */}
+            {/* BAGIAN TENGAH (CONTENT): MEDIA TOGGLES */}
             <div className="flex-1 flex flex-col gap-4 justify-center mb-6">
                 <div className="flex justify-between items-end">
                     <h3 className="font-bold text-gray-400 text-xs tracking-widest uppercase">PILIH FORMAT HASIL</h3>
@@ -491,12 +523,31 @@ export default function ResultStage({ photos, videoClips, frameConfig, uploadedF
                 </div>
             </div>
 
-            {/* FOOTER: ACTION BUTTONS */}
+            {/* FOOTER: PRINT COUNT + ACTIONS */}
             <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
                 <button onClick={onReset} className="bg-yellow-400 text-gray-700 px-15 py-5 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center"><Home size={20}/> MULAI BARU</button>
-                <div className="flex gap-3">
-                    <button onClick={processAndSaveAll} className="bg-gray-200 text-gray-700 px-6 py-4 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center gap-2">{isSaving ? <Loader2 className="animate-spin" size={16}/> : <CloudUpload size={16}/>} SIMPAN</button>
-                    <button onClick={handlePrintManual} className="bg-black text-white px-10 py-4 rounded-xl font-black text-xl hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_30px_rgba(0,0,0,0.4)]"><Printer size={24}/> CETAK FOTO</button>
+                
+                <div className="flex gap-4 items-end">
+                    
+                    {/* BUTTON SIMPAN */}
+                    <button onClick={processAndSaveAll} className="bg-gray-200 text-gray-700 px-6 py-4 rounded-xl font-bold text-sm hover:bg-gray-300 transition-colors flex items-center gap-2 h-[60px]">
+                        {isSaving ? <Loader2 className="animate-spin" size={16}/> : <CloudUpload size={16}/>} SIMPAN
+                    </button>
+
+                    {/* PRINT CONTROLS GROUP */}
+                    <div className="flex flex-col items-center mr-2">
+                        <span className="text-[10px] font-bold text-gray-500 mb-1 tracking-widest">JUMLAH CETAK</span>
+                        <div className="flex items-center bg-white border-2 border-gray-200 rounded-xl px-2 h-12">
+                            <button onClick={decreasePrintCount} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"><Minus size={16}/></button>
+                            <span className="w-8 text-center font-bold text-lg">{printCount}</span>
+                            <button onClick={increasePrintCount} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"><Plus size={16}/></button>
+                        </div>
+                    </div>
+
+                    {/* Print Button */}
+                    <button onClick={handlePrintManual} className="bg-black text-white px-8 py-4 rounded-xl font-black text-xl hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_30px_rgba(0,0,0,0.4)] h-[60px]">
+                        <Printer size={24}/> CETAK FOTO
+                    </button>
                 </div>
             </div>
 
